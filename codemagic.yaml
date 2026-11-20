@@ -1,0 +1,38 @@
+workflows:
+  android-workflow:
+    name: Android Build
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      java: 17
+      # لتفعيل "سؤال عام (Gemini)": أنشئ Group في Codemagic باسم gemini_secrets
+      # فيه متغير سري GEMINI_API_KEY ثم أزل علامة # من السطرين التاليين.
+      # groups:
+      #   - gemini_secrets
+      vars:
+        PACKAGE_NAME: "com.aistudio.samalutedusec.kpxqza"
+    scripts:
+      - name: Prepare local.properties and .env
+        script: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/local.properties"
+          echo "GEMINI_API_KEY=${GEMINI_API_KEY:-}" > "$CM_BUILD_DIR/.env"
+      - name: Generate debug keystore
+        script: |
+          if [ ! -f debug.keystore ]; then
+            keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey \
+              -keypass android -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+      - name: Build debug APK
+        script: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon -x lint -x test
+    artifacts:
+      - app/build/outputs/apk/**/*.apk
+    publishing:
+      email:
+        recipients:
+          - mst01286544560@gmail.com
+        notify:
+          success: true
+          failure: true
